@@ -54,4 +54,13 @@ ok(await p.evaluate(() => getComputedStyle(document.querySelector('.tiptap h1'))
 await p.click('.tiptap h1'); await p.waitForTimeout(200); const t30 = (await p.locator('button[title="Font size"]').innerText()).trim(); ok(t30 === '30', 'toolbar shows new H1 default 30 (got ' + t30 + ')')
 await p.click('button[title=Settings]'); await p.click('button[title="Reset Large Header (H1) to default"]')
 ok(await p.evaluate(() => getComputedStyle(document.querySelector('.tiptap h1')).fontSize) === '26.67px', 'reset H1 to default')
+// checklist + sidebar polish screenshot
+await p.keyboard.press('Escape'); await p.waitForSelector('.modal', { state: 'detached' })
+await p.click('.sidebar >> text=Home'); await p.click('.card:has-text("Shopping checklist")'); await p.click('.card:has-text("Shopping checklist")')
+await p.click('.title'); await p.waitForTimeout(300)
+const geo = await p.evaluate(() => { const li = [...document.querySelectorAll('.tiptap ul[data-type=taskList] > li')]; const box = li[0].querySelector('input').getBoundingClientRect(); const txt = li[0].querySelector('div').getBoundingClientRect(); const side = document.querySelector('.sidebar').getBoundingClientRect().left
+  const top = [...document.querySelectorAll('.sidebar .item:not(.sub)')][0]; const ti = top.querySelector('svg').getBoundingClientRect(); const tl = top.querySelector('span').getBoundingClientRect(); const ci = document.querySelector('.sidebar .item.sub svg').getBoundingClientRect()
+  return { box: box.width, gap: Math.round(txt.left - box.right), pitch: Math.round(li[1].getBoundingClientRect().top - li[0].getBoundingClientRect().top), iconX: Math.round(ti.left - side), labelGap: Math.round(tl.left - ti.right), childIconX: Math.round(ci.left - side), parentLabelX: Math.round(tl.left - side), row: top.getBoundingClientRect().height } })
+ok(geo.box === 18 && geo.gap >= 9 && geo.gap <= 11 && geo.pitch >= 31 && geo.pitch <= 34 && geo.iconX === 20 && geo.labelGap === 12 && geo.childIconX === geo.parentLabelX && geo.row === 27, 'checklist + sidebar geometry ' + JSON.stringify(geo))
+await p.screenshot({ path: 'screenshots/11-checklist-sidebar.png' })
 await b.close(); console.log('ALL PASSED')
