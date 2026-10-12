@@ -125,10 +125,14 @@ export class SyncEngine {
     const { toLocal, toRemote: push } = merge(local, remote)
     for (const r of toLocal) await putClean(s, r)
     if (push.length) {
-      const { error } = await withTimeout(this.client!.from(s).upsert(push.map(toRemote[s])), this.netTimeout, s + ' push')
-      if (error) throw error
-      const now = new Map((await allRaw<any>(s)).map(r => [r.id, r]))
-      for (const p of push) { const cur = now.get(p.id); if (cur && cur.updatedAt === p.updatedAt) await putClean(s, cur) } // keep dirty if edited mid-sync
+      // Batch upserts (imports can add thousands of rows / large HTML); a failed batch leaves its rows dirty for the next sync.
+      const rows = push.map(toRemote[s])
+      for (let i = 0; i < rows.length; i += 100) {
+        const { error } = await withTimeout(this.client!.from(s).upsert(rows.slice(i, i + 100)), this.netTimeout * 2, s + ' push')
+        if (error) throw error
+        const now = new Map((await allRaw<any>(s)).map(r => [r.id, r]))
+        for (const p of push.slice(i, i + 100)) { const cur = now.get(p.id); if (cur && cur.updatedAt === p.updatedAt) await putClean(s, cur) }
+      }
     }
     const maxCursor = remoteRaw.reduce((m, r) => (r.server_updated_at > m ? r.server_updated_at : m), since)
     if (maxCursor !== since) await setMeta(cursorKey, maxCursor)

@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { all, put, del, uid, onDbStatus, getDbStatus, importLegacy, type Note, type Notebook, type DbStatus } from './db'
 import Editor from './Editor'
 import Account from './Account'
-import { Search, Plus, FilePlus2, NotebookPen, MoreHorizontal, Home, Star, ChevronRight, ChevronDown, Tag, Trash2, ArrowDownUp, Filter, ChevronsLeft, ChevronsRight, Maximize2, Minimize2, Link2, Bell, Layers, X, Settings as Gear, CircleCheckBig, Book, Notebook as NotebookIcon } from 'lucide-react'
+import { Search, Plus, FilePlus2, NotebookPen, MoreHorizontal, Home, Star, ChevronRight, ChevronDown, Tag, Trash2, ArrowDownUp, Filter, ChevronsLeft, ChevronsRight, Maximize2, Minimize2, Link2, Bell, Layers, X, Settings as Gear, Download, CircleCheckBig, Book, Notebook as NotebookIcon } from 'lucide-react'
 import { SyncEngine, supabase, withTimeout } from './sync'
 import Settings from './Settings'
 import { loadFonts } from './settings'
@@ -26,7 +26,7 @@ export default function App() {
   const [menu, setMenu] = useState<'' | 'note' | 'list' | 'sort' | 'side'>('')
   const [open, setOpen] = useState({ shortcuts: true, notebooks: true, tags: true })
   const [pinnedOnly, setPinnedOnly] = useState(false)
-  const [showSettings, setShowSettings] = useState(false)
+  const [showSettings, setShowSettings] = useState<false | 'prefs' | 'import'>(false)
   useEffect(() => { loadFonts() }, [])
   const later = (n: Note) => { clearTimeout(saveT.current[n.id]); setSaving(1); saveT.current[n.id] = window.setTimeout(() => put('notes', n).then(() => setSaving(0)), 300) }
 
@@ -115,7 +115,8 @@ export default function App() {
         <button className="round" title="New notebook" onClick={newBook}><NotebookPen size={19} /></button>
         <span className="rel"><button className="round gray" title="More" onClick={e => { e.stopPropagation(); setMenu(menu === 'side' ? '' : 'side') }}><MoreHorizontal size={19} /></button>
           {menu === 'side' && <div className="menu">
-            <button title="Settings" onClick={() => setShowSettings(true)}><Gear size={14} /> Settings</button>
+            <button title="Import from Evernote" onClick={() => setShowSettings('import')}><Download size={14} /> Import from Evernote</button>
+            <button title="Settings" onClick={() => setShowSettings('prefs')}><Gear size={14} /> Settings</button>
             <button onClick={() => setHideSide(true)}><ChevronsLeft size={14} /> Collapse sidebar</button>
           </div>}</span>
       </div>
@@ -134,7 +135,7 @@ export default function App() {
         {open.tags && tags.map(t => <div key={t} className={is({ kind: 'tag', tag: t }) + ' sub'} onClick={() => setView({ kind: 'tag', tag: t })}><Tag size={16} /><span>{t}</span></div>)}
         <div className={is({ kind: 'trash' })} onClick={() => setView({ kind: 'trash' })}><Trash2 size={17} /><span>Trash</span><span className="count">{notes.length - live.length}</span></div>
       </nav>
-      <Account engine={engine} onSettings={() => setShowSettings(true)} />
+      <Account engine={engine} onSettings={() => setShowSettings('prefs')} />
     </aside>
     <section className="list">
       <header>
@@ -198,6 +199,6 @@ export default function App() {
         </footer>
       </> : <div className="empty big">Select or create a note</div>}
     </main>
-    {showSettings && <Settings onClose={() => setShowSettings(false)} />}
+    {showSettings && <Settings section={showSettings} notebooks={books} onImported={reload} onClose={() => setShowSettings(false)} />}
   </div></>
 }
