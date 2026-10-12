@@ -158,8 +158,8 @@ export default function App() {
         <div className="scroll">
           <div className="col">
             {cur.deletedAt && <div className="banner">This note is in Trash. Restore it to edit.</div>}
-            <input className="title" placeholder="Title" value={cur.title} readOnly={!!cur.deletedAt} onChange={e => upd({ ...cur, title: e.target.value, updatedAt: Date.now() }, false)} />
-            <div className={cur.deletedAt ? 'ro' : ''}><Editor key={cur.id} html={cur.html} onChange={(html, text) => editBody(cur.id, html, text)} /></div>
+            <div className={cur.deletedAt ? 'ro' : ''}><Editor key={cur.id} html={cur.html} onChange={(html, text) => editBody(cur.id, html, text)}
+              header={<input className="title" placeholder="Title" value={cur.title} readOnly={!!cur.deletedAt} onChange={e => upd({ ...cur, title: e.target.value, updatedAt: Date.now() }, false)} />} /></div>
           </div>
         </div>
         <footer className="bottombar">

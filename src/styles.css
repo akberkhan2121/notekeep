@@ -61,17 +61,10 @@ nav{flex:1;overflow:auto;margin:0 -8px;padding:0 8px}
 .btn{border:1px solid #ddd;background:#fff;border-radius:6px;padding:5px 12px;font-size:13px}
 .edited{font-size:12px;color:var(--muted);padding:2px 24px 0}
 .scroll{flex:1;overflow:auto}
-.col{max-width:760px;margin:0 auto;padding:36px 48px 60px}
+.col{max-width:800px;margin:0 auto;padding:4px 48px 60px}
 .banner{background:#fff6dd;padding:8px 12px;border-radius:6px;margin-bottom:12px;font-size:13px}
-.title{font-family:inherit;font-weight:700;font-size:30px;line-height:1.25;border:0;outline:0;width:100%;padding:0;margin-bottom:6px;color:var(--text)}
+.title{font-family:inherit;font-weight:700;font-size:32px;line-height:1.25;border:0;outline:0;width:100%;padding:0;margin-bottom:6px;color:var(--text)}
 .title::placeholder{color:#c4c4c4}
-.editor{position:relative}
-.toolbar{display:flex;flex-wrap:wrap;align-items:center;gap:1px;padding:3px;border:1px solid var(--line);border-radius:8px;background:#fff;box-shadow:0 4px 14px #0000000f;position:sticky;top:6px;z-index:3;width:max-content;max-width:100%;margin:0 0 10px;opacity:0;pointer-events:none;transform:translateY(-4px);transition:opacity .15s,transform .15s}
-.editor:focus-within .toolbar,.editor:hover .toolbar{opacity:1;pointer-events:auto;transform:none}
-.toolbar button{border:0;background:none;width:28px;height:28px;border-radius:5px;display:grid;place-items:center;color:#444}.toolbar button:hover{background:#f0f0f0}.toolbar .on{background:#eceefe;color:var(--blue)}
-.sep{width:1px;height:18px;background:var(--line);margin:0 3px}
-.prose .tiptap{outline:0;min-height:50vh;font-size:15px;line-height:1.6}
-.prose .tiptap p{margin:0 0 .5em}.prose h1{font-size:24px}.prose h2{font-size:19px}
 .prose pre{background:#f6f6f6;padding:10px 12px;border-radius:6px;font-size:13px}
 .prose blockquote{border-left:3px solid #d0d0d0;margin-left:0;padding-left:12px;color:#555}
 .prose mark{background:#fff3a3}
@@ -91,3 +84,31 @@ nav{flex:1;overflow:auto;margin:0 -8px;padding:0 8px}
 .tags{display:flex;gap:6px;flex-wrap:wrap;align-items:center}.tags input{border:0;outline:0;font:inherit;font-size:12.5px;width:110px;background:none}
 .tag{display:inline-flex;align-items:center;gap:3px;background:#efefef;color:#333;border-radius:12px;padding:2px 9px;font-size:12px}.tag button{border:0;background:none;padding:0;display:grid;place-items:center;color:#777}
 .saved{white-space:nowrap}
+
+/* editor toolbar (always visible) */
+.editor{position:relative}
+.toolbar{display:flex;align-items:center;gap:2px;flex-wrap:wrap;position:sticky;top:0;z-index:5;background:#fff;padding:6px 0;margin:0 0 28px}
+.tb{border:0;background:none;height:30px;min-width:30px;padding:0 6px;border-radius:6px;display:inline-flex;align-items:center;justify-content:center;gap:4px;color:#3b3b3b;font-size:14px}
+.tb:hover:not(:disabled),.tb.open{background:#f0f0f0}.tb:disabled{color:#c8c8c8;cursor:default}.tb.on{color:var(--blue);background:#eceefe}
+.tb svg{stroke-width:1.7}.cv{opacity:.6}.aa{font-size:16px}.fam{min-width:78px;text-align:left}.size{min-width:22px;text-align:left}
+.sep{width:1px;height:20px;background:#e3e3e3;margin:0 4px}
+.drop{position:relative}
+.dmenu{position:absolute;top:calc(100% + 4px);left:0;min-width:200px;background:#fff;border:1px solid #e5e5e5;border-radius:12px;box-shadow:0 10px 30px #00000022;padding:8px;z-index:30;max-height:60vh;overflow:auto}
+.dmenu.wide{min-width:280px}
+.mhead{font-size:12.5px;color:var(--muted);padding:4px 10px 8px}
+.mitem{display:flex;align-items:center;gap:10px;width:100%;border:0;background:none;padding:7px 10px;border-radius:7px;text-align:left;font-size:14.5px;color:#2b2b2b}
+.mitem:hover{background:#f3f3f3}.mitem.on{color:var(--blue)}.mitem.on .mi-ic{color:var(--blue)}
+.mi-ic{width:20px;display:grid;place-items:center;color:#555;flex:none}.mi-l{flex:1}.kbd{font-size:12px;color:#9a9a9a}
+.msep{height:1px;background:#ececec;margin:6px 4px}
+.mrow{display:flex;align-items:center;gap:6px;padding:7px 10px}.swatch{width:18px;height:18px;border-radius:50%;border:1px solid #0002;padding:0}
+/* body typography: ~16px / 1.6 like the reference */
+.prose .tiptap{outline:0;min-height:50vh;font-size:16px;line-height:1.6;color:#1f1f1f}
+.prose .tiptap p{margin:0 0 .35em}
+.prose h1{font-size:1.75em;line-height:1.25;margin:.8em 0 .35em}.prose h2{font-size:1.4em;line-height:1.3;margin:.75em 0 .3em}
+.prose h3{font-size:1.2em;margin:.7em 0 .3em}.prose h4{font-size:1.05em;margin:.6em 0 .25em}
+.prose .tiptap>:first-child{margin-top:0}
+.prose table{border-collapse:collapse;width:100%;margin:.6em 0;table-layout:fixed}.prose td,.prose th{border:1px solid #dcdcdc;padding:6px 8px;vertical-align:top;min-width:60px}.prose th{background:#f6f6f6;text-align:left;font-weight:600}
+.prose td p,.prose th p{margin:0}.prose .selectedCell{background:#eceefe}
+.prose img{max-width:100%;height:auto;border-radius:4px}.prose img.ProseMirror-selectednode{outline:2px solid var(--blue)}
+.prose a{color:var(--blue)}
+.ro .title{pointer-events:none}
