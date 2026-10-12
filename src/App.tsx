@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { all, put, del, uid, onDbStatus, getDbStatus, type Note, type Notebook, type DbStatus } from './db'
+import { all, put, del, uid, onDbStatus, getDbStatus, importLegacy, type Note, type Notebook, type DbStatus } from './db'
 import Editor from './Editor'
 import Account from './Account'
 import { Search, Plus, FilePlus2, NotebookPen, MoreHorizontal, Home, Star, ChevronRight, ChevronDown, FileText, BookOpen, Tag, Trash2, ArrowDownUp, Filter, ChevronsLeft, ChevronsRight, Maximize2, Minimize2, Link2, Bell, Layers, X, Settings as Gear } from 'lucide-react'
-import { SyncEngine } from './sync'
+import { SyncEngine, supabase, withTimeout } from './sync'
 import Settings from './Settings'
 import { loadFonts } from './settings'
 
@@ -31,9 +31,13 @@ export default function App() {
 
   const [dbState, setDbState] = useState<DbStatus>(getDbStatus())
   useEffect(() => onDbStatus(setDbState), [])
+  const reload = async () => { setBooks(await all<Notebook>('notebooks')); setNotes(await all<Note>('notes')) }
   useEffect(() => { (async () => { try {
+    await importLegacy().catch(e => console.warn('Notekeep: legacy import skipped', e))
     let b = await all<Notebook>('notebooks')
-    if (!b.length) {
+    // Signed-in users: Supabase is the source of truth. Don't seed anything before the first full pull.
+    const signedIn = supabase ? !!(await withTimeout(supabase.auth.getSession(), 3000, 'session').catch(() => ({ data: { session: null } }))).data.session : false
+    if (!b.length && !signedIn) {
       const nb = { id: uid(), name: 'First Notebook', createdAt: Date.now(), updatedAt: Date.now() }; await put('notebooks', nb); b = [nb]
       const now = Date.now()
       await put('notes', { id: uid(), title: 'Welcome to Notekeep', html: '<h1>Welcome to Notekeep</h1><p>Capture ideas, organize them into <strong>notebooks</strong> and <mark>tags</mark>, and find anything with search.</p><ul data-type="taskList"><li data-type="taskItem" data-checked="true">Create your first note</li><li data-type="taskItem" data-checked="false">Pin a note to Shortcuts</li></ul>', text: 'Welcome to Notekeep Capture ideas, organize them into notebooks and tags, and find anything with search. Create your first note Pin a note to Shortcuts', notebookId: nb.id, tags: ['getting-started'], pinned: true, deletedAt: null, createdAt: now, updatedAt: now })
@@ -42,7 +46,12 @@ export default function App() {
   } catch (e) { console.error('Notekeep: failed to load local data', e) } })() }, [])
   const engine = useMemo(() => new SyncEngine(async () => { setBooks(await all<Notebook>('notebooks')); setNotes(await all<Note>('notes')) }), [])
   useEffect(() => engine.start(), [engine])
-  useEffect(() => { if (dbState === 'ready') engine.sync() }, [dbState, engine])
+  // After the first successful pull, a signed-in user with no notebooks at all gets one empty notebook (no Welcome note).
+  useEffect(() => engine.subscribe(async () => {
+    if (engine.status !== 'synced') return
+    if ((await all<Notebook>('notebooks')).length === 0) { await put('notebooks', { id: uid(), name: 'First Notebook', createdAt: Date.now(), updatedAt: Date.now() }); reload() }
+  }), [engine])
+  useEffect(() => { if (dbState === 'ready' || dbState === 'memory') engine.sync() }, [dbState, engine])
 
   const upd = (n: Note, persistNow = true) => {
     setNotes(ns => ns.map(x => x.id === n.id ? n : x))
@@ -69,7 +78,8 @@ export default function App() {
   useEffect(() => { if (!list.find(n => n.id === sel)) setSel(list[0]?.id ?? null) }, [list])
 
   const newNote = async () => {
-    const nbId = view.kind === 'notebook' ? view.id : books[0]?.id
+    let nbId = view.kind === 'notebook' ? view.id : books[0]?.id
+    if (!nbId) { const nb = { id: uid(), name: 'First Notebook', createdAt: Date.now(), updatedAt: Date.now() }; await put('notebooks', nb); setBooks([nb]); nbId = nb.id }
     const n: Note = { id: uid(), title: '', html: '', text: '', notebookId: nbId, tags: view.kind === 'tag' ? [view.tag] : [], pinned: view.kind === 'shortcuts', deletedAt: null, createdAt: Date.now(), updatedAt: Date.now() }
     await put('notes', n); setNotes(ns => [n, ...ns]); if (view.kind === 'trash') setView({ kind: 'all' }); setQ(''); setSel(n.id)
   }
@@ -92,8 +102,8 @@ export default function App() {
       {icon}<span>{label}</span>{onAdd && <button className="mini" title="New notebook" onClick={e => { e.stopPropagation(); onAdd() }}><Plus size={14} /></button>}
       {open[k] ? <ChevronDown size={14} className="chev" /> : <ChevronRight size={14} className="chev" />}</div>
 
-  const dbBanner = dbState === 'blocked' ? <div className="dbbanner" role="alert">Notekeep was updated. <b>Close or reload other Notekeep tabs</b> to finish upgrading local storage — your notes are safe and will appear automatically. <button onClick={() => location.reload()}>Reload</button></div>
-    : dbState === 'error' ? <div className="dbbanner" role="alert">Couldn't open local storage. <button onClick={() => location.reload()}>Reload</button></div> : null
+  const dbBanner = dbState === 'slow' ? <div className="dbbanner" role="status">Opening local storage is taking longer than usual (another Notekeep tab may be holding it). Waiting… <button onClick={() => location.reload()}>Reload</button></div>
+    : dbState === 'memory' ? <div className="dbbanner" role="alert">Local storage is unavailable in this tab, so Notekeep is running from memory{supabase ? ' and loading your notes from the cloud. Edits sync while you are signed in' : '. Edits will be lost when you close this tab'}. Closing other Notekeep tabs and reloading usually fixes this. <button onClick={() => location.reload()}>Reload</button></div> : null
 
   return <>{dbBanner}<div className={'app' + (hideSide ? ' noside' : '') + (focus ? ' focus' : '')} onClick={() => menu && setMenu('')}>
     <aside className="sidebar">
