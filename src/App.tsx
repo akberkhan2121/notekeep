@@ -2,8 +2,10 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { all, put, del, uid, type Note, type Notebook } from './db'
 import Editor from './Editor'
 import Account from './Account'
-import { Search, Plus, FilePlus2, NotebookPen, MoreHorizontal, Home, Star, ChevronRight, ChevronDown, FileText, BookOpen, Tag, Trash2, ArrowDownUp, Filter, ChevronsLeft, ChevronsRight, Maximize2, Minimize2, Link2, Bell, Layers, X } from 'lucide-react'
+import { Search, Plus, FilePlus2, NotebookPen, MoreHorizontal, Home, Star, ChevronRight, ChevronDown, FileText, BookOpen, Tag, Trash2, ArrowDownUp, Filter, ChevronsLeft, ChevronsRight, Maximize2, Minimize2, Link2, Bell, Layers, X, Settings as Gear } from 'lucide-react'
 import { SyncEngine } from './sync'
+import Settings from './Settings'
+import { loadFonts } from './settings'
 
 type View = { kind: 'all' } | { kind: 'notebook'; id: string } | { kind: 'tag'; tag: string } | { kind: 'shortcuts' } | { kind: 'trash' }
 const fmtShort = (t: number) => { const d = new Date(t); return d.toLocaleDateString(undefined, d.getFullYear() === new Date().getFullYear() ? { month: 'short', day: 'numeric' } : { month: 'short', day: 'numeric', year: 'numeric' }) }
@@ -23,6 +25,8 @@ export default function App() {
   const [menu, setMenu] = useState<'' | 'note' | 'list' | 'sort'>('')
   const [open, setOpen] = useState({ shortcuts: true, notebooks: true, tags: true })
   const [pinnedOnly, setPinnedOnly] = useState(false)
+  const [showSettings, setShowSettings] = useState(false)
+  useEffect(() => { loadFonts() }, [])
   const later = (n: Note) => { clearTimeout(saveT.current[n.id]); setSaving(1); saveT.current[n.id] = window.setTimeout(() => put('notes', n).then(() => setSaving(0)), 300) }
 
   useEffect(() => { (async () => {
@@ -91,6 +95,7 @@ export default function App() {
       <div className="actions">
         <button className="new" onClick={newNote}><FilePlus2 size={17} /> Note</button>
         <button className="round" title="New notebook" onClick={newBook}><NotebookPen size={16} /></button>
+        <button className="round" title="Settings" onClick={() => setShowSettings(true)}><Gear size={16} /></button>
         <button className="round" title={hideSide ? '' : 'Collapse sidebar'} onClick={() => setHideSide(true)}><ChevronsLeft size={16} /></button>
       </div>
       <nav>
@@ -108,7 +113,7 @@ export default function App() {
         {open.tags && tags.map(t => <div key={t} className={is({ kind: 'tag', tag: t }) + ' sub'} onClick={() => setView({ kind: 'tag', tag: t })}><Tag size={14} /><span>{t}</span></div>)}
         <div className={is({ kind: 'trash' })} onClick={() => setView({ kind: 'trash' })}><Trash2 size={16} /><span>Trash</span><span className="count">{notes.length - live.length}</span></div>
       </nav>
-      <Account engine={engine} />
+      <Account engine={engine} onSettings={() => setShowSettings(true)} />
     </aside>
     <section className="list">
       <header>
@@ -172,5 +177,6 @@ export default function App() {
         </footer>
       </> : <div className="empty big">Select or create a note</div>}
     </main>
+    {showSettings && <Settings onClose={() => setShowSettings(false)} />}
   </div>
 }

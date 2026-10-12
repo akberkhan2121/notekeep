@@ -3,9 +3,10 @@ export interface Notebook { id: string; name: string; stack?: string; createdAt:
 export interface Note { id: string; title: string; html: string; text: string; notebookId: string; tags: string[]; pinned: boolean; deletedAt: number | null; purged?: boolean; createdAt: number; updatedAt: number; dirty?: number }
 export type Store = 'notes' | 'notebooks'
 let dbp: Promise<IDBPDatabase> | null = null
-const db = () => (dbp ??= openDB('notekeep', 2, { upgrade(d, old) {
+const db = () => (dbp ??= openDB('notekeep', 3, { upgrade(d, old) {
   if (old < 1) { d.createObjectStore('notes', { keyPath: 'id' }); d.createObjectStore('notebooks', { keyPath: 'id' }) }
   if (old < 2) d.createObjectStore('meta')
+  if (old < 3) d.createObjectStore('settings')
 } }))
 export const uid = () => crypto.randomUUID?.() ?? Math.random().toString(36).slice(2) + Date.now().toString(36)
 /** Raw rows, including tombstones (purged notes / deleted notebooks). */
@@ -29,3 +30,8 @@ export const setMeta = async (k: string, v: unknown) => { await (await db()).put
 const subs = new Set<() => void>()
 export const onLocalWrite = (f: () => void) => { subs.add(f); return () => subs.delete(f) }
 const notify = () => subs.forEach(f => f())
+export interface SettingsRecord<T> { value: T; updatedAt: number; dirty: number }
+export const getSetting = async <T,>(k: string) => (await db()).get('settings', k) as Promise<SettingsRecord<T> | undefined>
+/** Local settings write (dirty → synced). */
+export const putSetting = async <T,>(k: string, value: T) => { await (await db()).put('settings', { value, updatedAt: Date.now(), dirty: 1 }, k); notify() }
+export const putSettingClean = async <T,>(k: string, rec: SettingsRecord<T>) => { await (await db()).put('settings', { ...rec, dirty: 0 }, k) }

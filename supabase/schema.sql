@@ -60,3 +60,22 @@ do $$ begin
   begin alter publication supabase_realtime add table public.notes; exception when duplicate_object then null; end;
   begin alter publication supabase_realtime add table public.notebooks; exception when duplicate_object then null; end;
 end $$;
+
+-- ── Added for Settings → Notes → Default font settings (idempotent; safe to re-run) ──
+create table if not exists public.user_settings (
+  user_id uuid primary key default auth.uid() references auth.users(id) on delete cascade,
+  font_defaults jsonb not null default '{}'::jsonb,
+  updated_at bigint not null,               -- client epoch ms, last-write-wins
+  server_updated_at timestamptz not null default now()
+);
+drop trigger if exists user_settings_touch on public.user_settings;
+create trigger user_settings_touch before insert or update on public.user_settings for each row execute function public.touch_server_updated_at();
+alter table public.user_settings enable row level security;
+drop policy if exists "own select" on public.user_settings;
+drop policy if exists "own insert" on public.user_settings;
+drop policy if exists "own update" on public.user_settings;
+drop policy if exists "own delete" on public.user_settings;
+create policy "own select" on public.user_settings for select to authenticated using ((select auth.uid()) = user_id);
+create policy "own insert" on public.user_settings for insert to authenticated with check ((select auth.uid()) = user_id);
+create policy "own update" on public.user_settings for update to authenticated using ((select auth.uid()) = user_id) with check ((select auth.uid()) = user_id);
+create policy "own delete" on public.user_settings for delete to authenticated using ((select auth.uid()) = user_id);

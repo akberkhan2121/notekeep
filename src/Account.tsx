@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react'
-import { LogOut, RefreshCw, ChevronUp } from 'lucide-react'
+import { LogOut, RefreshCw, ChevronUp, Settings as Gear } from 'lucide-react'
 import { supabase, type SyncEngine } from './sync'
 
 const label: Record<string, string> = { 'local-only': 'Local only', 'signed-out': 'Not syncing', syncing: 'Syncing…', synced: 'Synced', offline: 'Offline — changes queued', error: 'Sync error' }
-export default function Account({ engine }: { engine: SyncEngine }) {
+export default function Account({ engine, onSettings }: { engine: SyncEngine; onSettings: () => void }) {
   const [, force] = useState(0)
   useEffect(() => engine.subscribe(() => force(x => x + 1)), [engine])
   const [open, setOpen] = useState(false); const [email, setEmail] = useState(''); const [pw, setPw] = useState(''); const [msg, setMsg] = useState('')
@@ -16,6 +16,7 @@ export default function Account({ engine }: { engine: SyncEngine }) {
   return <div className="account">
     {open && <div className="acct-menu" onClick={e => e.stopPropagation()}>
       <div className="acct-status"><span className={'dot ' + st} />{label[st]}{engine.lastError && <div className="msg">{engine.lastError}</div>}</div>
+      <button className="mi" onClick={() => { setOpen(false); onSettings() }}><Gear size={14} /> Settings</button>
       {!supabase && <div className="msg">Sync is off. Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY to enable it.</div>}
       {supabase && engine.session && <>
         <div className="who">{em}</div>

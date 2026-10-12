@@ -1,6 +1,7 @@
 import { createClient, type SupabaseClient, type Session } from '@supabase/supabase-js'
-import { allRaw, putClean, getMeta, setMeta, onLocalWrite, type Note, type Notebook, type Store } from './db'
+import { allRaw, putClean, getMeta, setMeta, onLocalWrite, getSetting, putSettingClean, type Note, type Notebook, type Store } from './db'
 import { merge } from './merge'
+import { KEY as FONTS_KEY, setFontsFromRemote } from './settings'
 
 const url = import.meta.env.VITE_SUPABASE_URL as string | undefined
 const key = import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined
@@ -61,12 +62,35 @@ export class SyncEngine {
       let changed = false
       for (const s of ['notebooks', 'notes'] as Store[]) changed = (await this.syncStore(s)) || changed
       if (changed) this.onRemoteChange()
+      await this.syncSettings()
       this.set('synced')
     } catch (e: any) {
       this.set(navigator.onLine ? 'error' : 'offline', e?.message ?? String(e))
     } finally {
       this.running = false
       if (this.again) { this.again = false; this.soon(200) }
+    }
+  }
+
+  private settingsTableMissing = false
+  /** Font defaults ↔ public.user_settings (one row per user). Silently skipped if the table doesn't exist yet. */
+  private async syncSettings() {
+    if (this.settingsTableMissing) return
+    const uidv = this.session!.user.id
+    const { data, error } = await supabase!.from('user_settings').select('font_defaults, updated_at').eq('user_id', uidv).maybeSingle()
+    if (error) {
+      if (['42P01', 'PGRST205', 'PGRST106'].includes(error.code) || /does not exist|schema cache/i.test(error.message)) { this.settingsTableMissing = true; console.info('Notekeep: user_settings table missing; settings stay local. Run supabase/schema.sql to enable.'); return }
+      throw error
+    }
+    const local = await getSetting<unknown>(FONTS_KEY)
+    const remoteAt = data ? Number(data.updated_at) : 0
+    if (data && (!local || remoteAt > local.updatedAt || (remoteAt === local.updatedAt && local.dirty === 0))) {
+      if (!local || remoteAt !== local.updatedAt) { await putSettingClean(FONTS_KEY, { value: data.font_defaults, updatedAt: remoteAt, dirty: 0 }); setFontsFromRemote(data.font_defaults) }
+    } else if (local && local.dirty !== 0) {
+      const { error: e2 } = await supabase!.from('user_settings').upsert({ user_id: uidv, font_defaults: local.value, updated_at: local.updatedAt })
+      if (e2) throw e2
+      const now = await getSetting<unknown>(FONTS_KEY)
+      if (now && now.updatedAt === local.updatedAt) await putSettingClean(FONTS_KEY, now)
     }
   }
 

@@ -10,21 +10,10 @@ import Image from '@tiptap/extension-image'
 import Subscript from '@tiptap/extension-subscript'
 import Superscript from '@tiptap/extension-superscript'
 import { Indent } from './Indent'
+import { FONTS, SANS, SIZES, toPx, fromPx, useFonts, type BlockKey } from './settings'
 import { ChevronDown, CircleCheck, Undo2, Redo2, ListChecks, List, ListOrdered, Table, Minus, Code2, Quote, Link, Image as ImageIcon, Bold, Italic, Underline, Strikethrough, Highlighter, Palette, Superscript as SupIcon, Subscript as SubIcon, AlignLeft, AlignCenter, AlignRight, Indent as IndentIcon, Outdent, RemoveFormatting, Heading1, Heading2, Heading3, Heading4, Type } from 'lucide-react'
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 
-export const FONTS = [
-  { label: 'Sans Serif', value: '' },
-  { label: 'Serif', value: 'Georgia, "Times New Roman", serif' },
-  { label: 'Slab Serif', value: '"Roboto Slab", Rockwell, "Courier Bold", Georgia, serif' },
-  { label: 'Monospace', value: 'ui-monospace, SFMono-Regular, Menlo, Consolas, monospace' },
-  { label: 'Handwritten', value: '"Comic Sans MS", "Bradley Hand", "Segoe Print", cursive' },
-]
-export const SIZES = [8, 9, 10, 12, 14, 15, 16, 18, 20, 24, 30, 36, 48, 64]
-export const DEFAULT_SIZE = 15
-/** Toolbar sizes are scaled so the default "15" renders at 16px, like the reference. */
-export const toPx = (s: number) => +(s * 16 / DEFAULT_SIZE).toFixed(2) + 'px'
-export const fromPx = (px: string) => Math.round(parseFloat(px) * DEFAULT_SIZE / 16)
 const COLORS = ['#1f1f1f', '#737373', '#d93025', '#e8710a', '#c79100', '#188038', '#1a73e8', '#5565f6', '#9334e6']
 const BLOCKS = [
   { label: 'Normal text', icon: <Type size={16} />, level: 0 },
@@ -49,9 +38,10 @@ const Item = ({ icon, label, onRun, active, kbd, close }: { icon?: ReactNode; la
 function Toolbar({ editor }: { editor: TEditor }) {
   const c = () => editor.chain().focus()
   const ts = editor.getAttributes('textStyle')
-  const fam = FONTS.find(f => f.value && ts.fontFamily === f.value) ?? FONTS[0]
-  const size = ts.fontSize ? fromPx(ts.fontSize) : DEFAULT_SIZE
   const level = BLOCKS.find(b => b.level && editor.isActive('heading', { level: b.level }))?.level ?? 0
+  const def = useFonts()[(level ? 'h' + level : 'p') as BlockKey]   // block default from Settings
+  const fam = (ts.fontFamily ? FONTS.find(f => (f.value || SANS) === ts.fontFamily) : undefined) ?? FONTS.find(f => f.value === def.family) ?? FONTS[0]
+  const size = ts.fontSize ? fromPx(ts.fontSize) : def.size
   const mac = /Mac|iPhone|iPad/.test(navigator.platform); const M = mac ? '⌘' : 'Ctrl+'; const S = mac ? '⇧' : 'Shift+'
   const I = (icon: ReactNode, title: string, run: () => void, disabled = false, active = false) =>
     <button type="button" className={'tb' + (active ? ' on' : '')} title={title} aria-label={title} disabled={disabled} onMouseDown={e => { e.preventDefault(); run() }}>{icon}</button>
@@ -81,10 +71,10 @@ function Toolbar({ editor }: { editor: TEditor }) {
     <i className="sep" />
     <Drop label={<span className="fam">{fam.label}</span>} title="Font" className="txt">{close => FONTS.map(f =>
       <Item key={f.label} close={close} label={f.label} active={f === fam} icon={<span style={{ fontFamily: f.value || 'inherit' }}>Aa</span>}
-        onRun={() => f.value ? c().setFontFamily(f.value).run() : c().unsetFontFamily().run()} />)}</Drop>
+        onRun={() => f.value !== def.family ? c().setFontFamily(f.value || SANS).run() : c().unsetFontFamily().run()} />)}</Drop>
     <i className="sep" />
     <Drop label={<span className="size">{size}</span>} title="Font size" className="txt">{close => SIZES.map(s =>
-      <Item key={s} close={close} label={String(s)} active={s === size} onRun={() => s === DEFAULT_SIZE ? c().unsetFontSize().run() : c().setFontSize(toPx(s)).run()} />)}</Drop>
+      <Item key={s} close={close} label={String(s)} active={s === size} onRun={() => s === def.size ? c().unsetFontSize().run() : c().setFontSize(toPx(s)).run()} />)}</Drop>
     <i className="sep" />
     <Drop label="More" title="More formatting" className="txt" wide>{close => <>
       <Item close={close} icon={<Bold size={16} />} label="Bold" kbd={M + 'B'} active={editor.isActive('bold')} onRun={() => c().toggleBold().run()} />

@@ -38,6 +38,11 @@ Dashboard → **Authentication → URL Configuration**:
 Authentication → **Sign In / Providers → Email**: keep Email enabled. "Confirm email" on means password sign-ups must click the email link before signing in.
 Free-tier note: the built-in mailer is heavily rate-limited (a few emails per hour). For real use, set up custom SMTP under Authentication → Emails → SMTP settings.
 
+### Settings sync (font defaults)
+Settings → Preferences → Notes → Default font settings are stored locally in IndexedDB (`settings` store) and, when signed in, in `public.user_settings` (one row per user, last-write-wins). If you set up Supabase before this table existed, re-run `supabase/schema.sql` (it's idempotent) — until then the app keeps settings local and logs one info message.
+
+Font size unit: toolbar and settings sizes use one scale where 15 = normal text; rendered px = value × 16/15 (15 → 16px, H1 25 → 26.67px).
+
 ### Known limitations
 - Conflicts are whole-row last-write-wins using client clocks, with no field-level merge. A device with a badly skewed clock can win incorrectly.
 - Every fresh browser seeds its own "Welcome" note and "First Notebook", which then sync. Delete the duplicates if you sign in on several devices.
