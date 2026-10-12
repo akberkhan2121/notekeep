@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { all, put, del, uid, type Note, type Notebook } from './db'
+import { all, put, del, uid, onDbStatus, getDbStatus, type Note, type Notebook, type DbStatus } from './db'
 import Editor from './Editor'
 import Account from './Account'
 import { Search, Plus, FilePlus2, NotebookPen, MoreHorizontal, Home, Star, ChevronRight, ChevronDown, FileText, BookOpen, Tag, Trash2, ArrowDownUp, Filter, ChevronsLeft, ChevronsRight, Maximize2, Minimize2, Link2, Bell, Layers, X, Settings as Gear } from 'lucide-react'
@@ -29,7 +29,9 @@ export default function App() {
   useEffect(() => { loadFonts() }, [])
   const later = (n: Note) => { clearTimeout(saveT.current[n.id]); setSaving(1); saveT.current[n.id] = window.setTimeout(() => put('notes', n).then(() => setSaving(0)), 300) }
 
-  useEffect(() => { (async () => {
+  const [dbState, setDbState] = useState<DbStatus>(getDbStatus())
+  useEffect(() => onDbStatus(setDbState), [])
+  useEffect(() => { (async () => { try {
     let b = await all<Notebook>('notebooks')
     if (!b.length) {
       const nb = { id: uid(), name: 'First Notebook', createdAt: Date.now(), updatedAt: Date.now() }; await put('notebooks', nb); b = [nb]
@@ -37,9 +39,10 @@ export default function App() {
       await put('notes', { id: uid(), title: 'Welcome to Notekeep', html: '<h1>Welcome to Notekeep</h1><p>Capture ideas, organize them into <strong>notebooks</strong> and <mark>tags</mark>, and find anything with search.</p><ul data-type="taskList"><li data-type="taskItem" data-checked="true">Create your first note</li><li data-type="taskItem" data-checked="false">Pin a note to Shortcuts</li></ul>', text: 'Welcome to Notekeep Capture ideas, organize them into notebooks and tags, and find anything with search. Create your first note Pin a note to Shortcuts', notebookId: nb.id, tags: ['getting-started'], pinned: true, deletedAt: null, createdAt: now, updatedAt: now })
     }
     setBooks(b); setNotes(await all<Note>('notes'))
-  })() }, [])
+  } catch (e) { console.error('Notekeep: failed to load local data', e) } })() }, [])
   const engine = useMemo(() => new SyncEngine(async () => { setBooks(await all<Notebook>('notebooks')); setNotes(await all<Note>('notes')) }), [])
   useEffect(() => engine.start(), [engine])
+  useEffect(() => { if (dbState === 'ready') engine.sync() }, [dbState, engine])
 
   const upd = (n: Note, persistNow = true) => {
     setNotes(ns => ns.map(x => x.id === n.id ? n : x))
@@ -89,7 +92,10 @@ export default function App() {
       {icon}<span>{label}</span>{onAdd && <button className="mini" title="New notebook" onClick={e => { e.stopPropagation(); onAdd() }}><Plus size={14} /></button>}
       {open[k] ? <ChevronDown size={14} className="chev" /> : <ChevronRight size={14} className="chev" />}</div>
 
-  return <div className={'app' + (hideSide ? ' noside' : '') + (focus ? ' focus' : '')} onClick={() => menu && setMenu('')}>
+  const dbBanner = dbState === 'blocked' ? <div className="dbbanner" role="alert">Notekeep was updated. <b>Close or reload other Notekeep tabs</b> to finish upgrading local storage — your notes are safe and will appear automatically. <button onClick={() => location.reload()}>Reload</button></div>
+    : dbState === 'error' ? <div className="dbbanner" role="alert">Couldn't open local storage. <button onClick={() => location.reload()}>Reload</button></div> : null
+
+  return <>{dbBanner}<div className={'app' + (hideSide ? ' noside' : '') + (focus ? ' focus' : '')} onClick={() => menu && setMenu('')}>
     <aside className="sidebar">
       <label className="search"><Search size={16} /><input placeholder="Search" value={q} onChange={e => setQ(e.target.value)} aria-label="Search notes" /></label>
       <div className="actions">
@@ -178,5 +184,5 @@ export default function App() {
       </> : <div className="empty big">Select or create a note</div>}
     </main>
     {showSettings && <Settings onClose={() => setShowSettings(false)} />}
-  </div>
+  </div></>
 }

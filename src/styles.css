@@ -135,3 +135,5 @@ nav{flex:1;overflow:auto;margin:0 -8px;padding:0 8px}
 .swatch-ring{position:absolute;left:11px;width:20px;height:20px;border-radius:50%;background:conic-gradient(#f44,#fb3,#4c4,#3cf,#66f,#c4f,#f44);display:grid;place-items:center;pointer-events:none}
 .swatch-ring span{width:13px;height:13px;border-radius:50%;border:2px solid #fff}
 .reset:disabled{opacity:.35}
+.dbbanner{position:fixed;top:10px;left:50%;transform:translateX(-50%);z-index:200;background:#fff4d6;border:1px solid #f0d58a;color:#5a4300;padding:10px 14px;border-radius:10px;box-shadow:0 6px 20px #0002;font-size:13.5px;max-width:720px}
+.dbbanner button{margin-left:8px;border:1px solid #d9b84f;background:#fff;border-radius:6px;padding:3px 10px}
