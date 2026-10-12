@@ -1,0 +1,29 @@
+*{box-sizing:border-box}body{margin:0;font:14px/1.45 system-ui,-apple-system,Segoe UI,sans-serif;color:#222}
+.app{display:grid;grid-template-columns:240px 300px 1fr;height:100vh}
+.sidebar{background:#1f2328;color:#ccd;overflow:auto;padding:12px 8px}
+.brand{font-weight:700;font-size:17px;color:#fff;padding:4px 8px 12px}.logo{color:#4fb6a3}
+.search{width:100%;padding:7px 10px;border-radius:16px;border:0;background:#33383f;color:#fff;margin-bottom:8px}
+.new{width:100%;background:#2e9e86;color:#fff;border:0;border-radius:18px;padding:8px;font-weight:600;cursor:pointer;margin-bottom:10px}
+.item{padding:5px 8px;border-radius:4px;cursor:pointer;display:flex;gap:6px;align-items:center;white-space:nowrap;overflow:hidden}
+.item:hover{background:#2c3138}.item.active{background:#3a414a;color:#fff}.sub{padding-left:22px;font-size:13px}
+.count{margin-left:auto;opacity:.6;font-size:12px}.section{text-transform:uppercase;font-size:11px;opacity:.6;margin:14px 8px 4px;display:flex;justify-content:space-between}
+.stack{padding:4px 8px;font-size:13px;opacity:.85}.trash{margin-top:14px}
+.mini{background:none;border:0;color:inherit;cursor:pointer;font-size:14px;padding:0 4px}.item .x{visibility:hidden}.item:hover .x{visibility:visible}
+.list{border-right:1px solid #e3e3e3;overflow:auto;background:#fafafa}.list header{padding:16px;border-bottom:1px solid #e3e3e3;position:sticky;top:0;background:#fafafa}
+.list h2{margin:0 0 6px}.meta{display:flex;justify-content:space-between;color:#777;font-size:12px}
+.card{padding:12px 16px;border-bottom:1px solid #eee;cursor:pointer;background:#fff}.card.sel{outline:2px solid #2e9e86;outline-offset:-2px}
+.card h3{margin:0;font-size:14px}.card p{margin:4px 0;color:#666;font-size:12.5px;max-height:3em;overflow:hidden}.card time{font-size:11px;color:#999}
+.empty{padding:30px;color:#999;text-align:center}.big{margin-top:30vh}
+.pane{overflow:auto;padding:0 32px 32px;display:flex;flex-direction:column}
+.notebar{display:flex;gap:8px;padding:10px 0;border-bottom:1px solid #eee;position:sticky;top:0;background:#fff;z-index:2}.grow{flex:1}
+button{cursor:pointer}.notebar button,.danger,.list header button{border:1px solid #ccc;background:#fff;border-radius:4px;padding:4px 10px}
+.danger{color:#b3261e;border-color:#e3b3b0!important}.banner{background:#fff4d6;padding:8px 12px;margin-top:10px;border-radius:4px}
+.title{font-size:28px;font-weight:700;border:0;outline:0;margin-top:18px;width:100%}
+.tags{display:flex;gap:6px;flex-wrap:wrap;margin:8px 0}.tags input{border:0;outline:0;font-size:12px}
+.tag{background:#e6f4f1;color:#1d6b5b;border-radius:10px;padding:2px 8px;font-size:12px}.tag button{border:0;background:none;color:inherit;padding-left:4px}
+.toolbar{display:flex;flex-wrap:wrap;gap:2px;border:1px solid #eee;border-radius:6px;padding:4px;margin:6px 0 12px;position:sticky;top:50px;background:#fff;z-index:1}
+.toolbar button{border:0;background:none;padding:4px 8px;border-radius:4px;font-size:13px}.toolbar button:hover{background:#f0f0f0}.toolbar .on{background:#dff1ec;color:#1d6b5b}
+.prose .tiptap{outline:0;min-height:50vh;font-size:15px}.prose ul[data-type=taskList]{list-style:none;padding-left:4px}
+.prose ul[data-type=taskList] li{display:flex;gap:6px}.prose pre{background:#272822;color:#eee;padding:10px;border-radius:6px}
+.prose blockquote{border-left:3px solid #2e9e86;margin-left:0;padding-left:12px;color:#555}.ro{pointer-events:none;opacity:.7}
+.foot{color:#999;font-size:12px;margin-top:auto;padding-top:20px}
