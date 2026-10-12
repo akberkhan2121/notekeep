@@ -1,9 +1,31 @@
 import { openDB, type IDBPDatabase } from 'idb'
-export interface Notebook { id: string; name: string; stack?: string; createdAt: number }
-export interface Note { id: string; title: string; html: string; text: string; notebookId: string; tags: string[]; pinned: boolean; deletedAt: number | null; createdAt: number; updatedAt: number }
+export interface Notebook { id: string; name: string; stack?: string; createdAt: number; updatedAt: number; deletedAt?: number | null; dirty?: number }
+export interface Note { id: string; title: string; html: string; text: string; notebookId: string; tags: string[]; pinned: boolean; deletedAt: number | null; purged?: boolean; createdAt: number; updatedAt: number; dirty?: number }
+export type Store = 'notes' | 'notebooks'
 let dbp: Promise<IDBPDatabase> | null = null
-const db = () => (dbp ??= openDB('notekeep', 1, { upgrade(d) { d.createObjectStore('notes', { keyPath: 'id' }); d.createObjectStore('notebooks', { keyPath: 'id' }) } }))
-export const uid = () => Math.random().toString(36).slice(2, 10) + Date.now().toString(36)
-export const all = async <T,>(s: 'notes' | 'notebooks') => (await db()).getAll(s) as Promise<T[]>
-export const put = async (s: 'notes' | 'notebooks', v: unknown) => { await (await db()).put(s, v) }
-export const del = async (s: 'notes' | 'notebooks', id: string) => { await (await db()).delete(s, id) }
+const db = () => (dbp ??= openDB('notekeep', 2, { upgrade(d, old) {
+  if (old < 1) { d.createObjectStore('notes', { keyPath: 'id' }); d.createObjectStore('notebooks', { keyPath: 'id' }) }
+  if (old < 2) d.createObjectStore('meta')
+} }))
+export const uid = () => crypto.randomUUID?.() ?? Math.random().toString(36).slice(2) + Date.now().toString(36)
+/** Raw rows, including tombstones (purged notes / deleted notebooks). */
+export const allRaw = async <T,>(s: Store) => (await db()).getAll(s) as Promise<T[]>
+/** Rows visible to the UI. */
+export const all = async <T,>(s: Store) => (await allRaw<T & { purged?: boolean; deletedAt?: number | null }>(s))
+  .filter(r => s === 'notes' ? !r.purged : !r.deletedAt) as T[]
+/** Local write: marks the row dirty so the sync engine pushes it. Stamps updatedAt if missing. */
+export const put = async <T extends { updatedAt?: number }>(s: Store, v: T) => {
+  await (await db()).put(s, { ...v, updatedAt: v.updatedAt ?? Date.now(), dirty: 1 }); notify()
+}
+/** Write coming from the server (not dirty). */
+export const putClean = async (s: Store, v: object) => { await (await db()).put(s, { ...v, dirty: 0 }) }
+/** Delete = tombstone so the deletion syncs. */
+export const del = async (s: Store, id: string) => {
+  const d = await db(); const r = await d.get(s, id); if (!r) return
+  await put(s, s === 'notes' ? { ...r, purged: true, updatedAt: Date.now() } : { ...r, deletedAt: Date.now(), updatedAt: Date.now() })
+}
+export const getMeta = async <T,>(k: string) => (await db()).get('meta', k) as Promise<T | undefined>
+export const setMeta = async (k: string, v: unknown) => { await (await db()).put('meta', v, k) }
+const subs = new Set<() => void>()
+export const onLocalWrite = (f: () => void) => { subs.add(f); return () => subs.delete(f) }
+const notify = () => subs.forEach(f => f())

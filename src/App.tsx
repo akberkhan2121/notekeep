@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { all, put, del, uid, type Note, type Notebook } from './db'
 import Editor from './Editor'
+import Account from './Account'
+import { SyncEngine } from './sync'
 
 type View = { kind: 'all' } | { kind: 'notebook'; id: string } | { kind: 'tag'; tag: string } | { kind: 'shortcuts' } | { kind: 'trash' }
 const fmt = (t: number) => new Date(t).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })
@@ -18,12 +20,14 @@ export default function App() {
   useEffect(() => { (async () => {
     let b = await all<Notebook>('notebooks')
     if (!b.length) {
-      const nb = { id: uid(), name: 'First Notebook', createdAt: Date.now() }; await put('notebooks', nb); b = [nb]
+      const nb = { id: uid(), name: 'First Notebook', createdAt: Date.now(), updatedAt: Date.now() }; await put('notebooks', nb); b = [nb]
       const now = Date.now()
       await put('notes', { id: uid(), title: 'Welcome to Notekeep', html: '<h1>Welcome to Notekeep</h1><p>Capture ideas, organize them into <strong>notebooks</strong> and <mark>tags</mark>, and find anything with search.</p><ul data-type="taskList"><li data-type="taskItem" data-checked="true">Create your first note</li><li data-type="taskItem" data-checked="false">Pin a note to Shortcuts</li></ul>', text: 'Welcome to Notekeep Capture ideas, organize them into notebooks and tags, and find anything with search. Create your first note Pin a note to Shortcuts', notebookId: nb.id, tags: ['getting-started'], pinned: true, deletedAt: null, createdAt: now, updatedAt: now })
     }
     setBooks(b); setNotes(await all<Note>('notes'))
   })() }, [])
+  const engine = useMemo(() => new SyncEngine(async () => { setBooks(await all<Notebook>('notebooks')); setNotes(await all<Note>('notes')) }), [])
+  useEffect(() => engine.start(), [engine])
 
   const upd = (n: Note, persistNow = true) => {
     setNotes(ns => ns.map(x => x.id === n.id ? n : x))
@@ -57,7 +61,7 @@ export default function App() {
   const newBook = async () => {
     const name = prompt('Notebook name'); if (!name) return
     const stack = prompt('Stack (optional — groups notebooks)') || undefined
-    const b = { id: uid(), name, stack, createdAt: Date.now() }; await put('notebooks', b); setBooks(x => [...x, b]); setView({ kind: 'notebook', id: b.id })
+    const b = { id: uid(), name, stack, createdAt: Date.now(), updatedAt: Date.now() }; await put('notebooks', b); setBooks(x => [...x, b]); setView({ kind: 'notebook', id: b.id })
   }
   const delBook = async (b: Notebook) => {
     if (books.length < 2) return alert('You need at least one notebook.')
@@ -89,6 +93,7 @@ export default function App() {
         {tags.map(t => <div key={t} className={is({ kind: 'tag', tag: t })} onClick={() => setView({ kind: 'tag', tag: t })}># {t}</div>)}
         <div className={is({ kind: 'trash' }) + ' trash'} onClick={() => setView({ kind: 'trash' })}>🗑 Trash <span className="count">{notes.length - live.length}</span></div>
       </nav>
+      <Account engine={engine} />
     </aside>
     <section className="list">
       <header><h2>{title}</h2><div className="meta">{list.length} notes

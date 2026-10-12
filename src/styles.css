@@ -27,3 +27,9 @@ button{cursor:pointer}.notebar button,.danger,.list header button{border:1px sol
 .prose ul[data-type=taskList] li{display:flex;gap:6px}.prose pre{background:#272822;color:#eee;padding:10px;border-radius:6px}
 .prose blockquote{border-left:3px solid #2e9e86;margin-left:0;padding-left:12px;color:#555}.ro{pointer-events:none;opacity:.7}
 .foot{color:#999;font-size:12px;margin-top:auto;padding-top:20px}
+.sidebar{display:flex;flex-direction:column}.sidebar nav{flex:1}
+.account{border-top:1px solid #333a42;margin-top:12px;padding:10px 8px 2px;font-size:12px}.who{opacity:.7;margin-top:4px;word-break:break-all}
+.link{background:none;border:0;color:#6cc9b5;cursor:pointer;padding:0;font-size:12px}
+.dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px;background:#888}.dot.synced{background:#3fbf7f}.dot.syncing{background:#e3b341}.dot.offline{background:#d68a3a}.dot.error{background:#e5534b}
+.auth{display:flex;flex-direction:column;gap:6px;margin-top:8px}.auth input{padding:6px 8px;border-radius:4px;border:0;background:#33383f;color:#fff}
+.auth button{background:#2e9e86;color:#fff;border:0;border-radius:4px;padding:6px;cursor:pointer}.auth .row{display:flex;gap:6px}.auth .row button{flex:1}.msg{opacity:.8}
