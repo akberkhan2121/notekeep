@@ -2,12 +2,13 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { all, put, del, uid, onDbStatus, getDbStatus, importLegacy, type Note, type Notebook, type DbStatus } from './db'
 import Editor from './Editor'
 import Account from './Account'
-import { Search, Plus, FilePlus2, NotebookPen, MoreHorizontal, Home, Star, ChevronRight, ChevronDown, FileText, BookOpen, Tag, Trash2, ArrowDownUp, Filter, ChevronsLeft, ChevronsRight, Maximize2, Minimize2, Link2, Bell, Layers, X, Settings as Gear } from 'lucide-react'
+import { Search, Plus, FilePlus2, NotebookPen, MoreHorizontal, Home, Star, ChevronRight, ChevronDown, Tag, Trash2, ArrowDownUp, Filter, ChevronsLeft, ChevronsRight, Maximize2, Minimize2, Link2, Bell, Layers, X, Settings as Gear, CircleCheckBig, Book, Notebook as NotebookIcon } from 'lucide-react'
 import { SyncEngine, supabase, withTimeout } from './sync'
 import Settings from './Settings'
 import { loadFonts } from './settings'
 
 type View = { kind: 'all' } | { kind: 'notebook'; id: string } | { kind: 'tag'; tag: string } | { kind: 'shortcuts' } | { kind: 'trash' }
+const CHECKLIST_HTML = '<ul data-type="taskList"><li data-type="taskItem" data-checked="false"><p></p></li></ul>'
 const fmtShort = (t: number) => { const d = new Date(t); return d.toLocaleDateString(undefined, d.getFullYear() === new Date().getFullYear() ? { month: 'short', day: 'numeric' } : { month: 'short', day: 'numeric', year: 'numeric' }) }
 
 export default function App() {
@@ -22,7 +23,7 @@ export default function App() {
   const [saving, setSaving] = useState(0)
   const [hideSide, setHideSide] = useState(false)
   const [focus, setFocus] = useState(false)
-  const [menu, setMenu] = useState<'' | 'note' | 'list' | 'sort'>('')
+  const [menu, setMenu] = useState<'' | 'note' | 'list' | 'sort' | 'side'>('')
   const [open, setOpen] = useState({ shortcuts: true, notebooks: true, tags: true })
   const [pinnedOnly, setPinnedOnly] = useState(false)
   const [showSettings, setShowSettings] = useState(false)
@@ -77,10 +78,10 @@ export default function App() {
   const cur = notes.find(n => n.id === sel) ?? null
   useEffect(() => { if (!list.find(n => n.id === sel)) setSel(list[0]?.id ?? null) }, [list])
 
-  const newNote = async () => {
+  const newNote = async (html = '') => {
     let nbId = view.kind === 'notebook' ? view.id : books[0]?.id
     if (!nbId) { const nb = { id: uid(), name: 'First Notebook', createdAt: Date.now(), updatedAt: Date.now() }; await put('notebooks', nb); setBooks([nb]); nbId = nb.id }
-    const n: Note = { id: uid(), title: '', html: '', text: '', notebookId: nbId, tags: view.kind === 'tag' ? [view.tag] : [], pinned: view.kind === 'shortcuts', deletedAt: null, createdAt: Date.now(), updatedAt: Date.now() }
+    const n: Note = { id: uid(), title: '', html, text: '', notebookId: nbId, tags: view.kind === 'tag' ? [view.tag] : [], pinned: view.kind === 'shortcuts', deletedAt: null, createdAt: Date.now(), updatedAt: Date.now() }
     await put('notes', n); setNotes(ns => [n, ...ns]); if (view.kind === 'trash') setView({ kind: 'all' }); setQ(''); setSel(n.id)
   }
   const newBook = async () => {
@@ -107,27 +108,31 @@ export default function App() {
 
   return <>{dbBanner}<div className={'app' + (hideSide ? ' noside' : '') + (focus ? ' focus' : '')} onClick={() => menu && setMenu('')}>
     <aside className="sidebar">
-      <label className="search"><Search size={16} /><input placeholder="Search" value={q} onChange={e => setQ(e.target.value)} aria-label="Search notes" /></label>
+      <label className="search"><Search size={19} /><input placeholder="Search" value={q} onChange={e => setQ(e.target.value)} aria-label="Search notes" /></label>
       <div className="actions">
-        <button className="new" onClick={newNote}><FilePlus2 size={17} /> Note</button>
-        <button className="round" title="New notebook" onClick={newBook}><NotebookPen size={16} /></button>
-        <button className="round" title="Settings" onClick={() => setShowSettings(true)}><Gear size={16} /></button>
-        <button className="round" title={hideSide ? '' : 'Collapse sidebar'} onClick={() => setHideSide(true)}><ChevronsLeft size={16} /></button>
+        <button className="new" onClick={() => newNote()}><FilePlus2 size={20} strokeWidth={1.8} /> Note</button>
+        <button className="round" title="New checklist note" onClick={() => newNote(CHECKLIST_HTML)}><CircleCheckBig size={19} /><Plus size={10} strokeWidth={3} className="plus" /></button>
+        <button className="round" title="New notebook" onClick={newBook}><NotebookPen size={19} /></button>
+        <span className="rel"><button className="round gray" title="More" onClick={e => { e.stopPropagation(); setMenu(menu === 'side' ? '' : 'side') }}><MoreHorizontal size={19} /></button>
+          {menu === 'side' && <div className="menu">
+            <button title="Settings" onClick={() => setShowSettings(true)}><Gear size={14} /> Settings</button>
+            <button onClick={() => setHideSide(true)}><ChevronsLeft size={14} /> Collapse sidebar</button>
+          </div>}</span>
       </div>
       <nav>
-        <div className={is({ kind: 'all' })} onClick={() => setView({ kind: 'all' })}><Home size={16} /><span>Home</span><span className="count">{live.length}</span></div>
-        <div className="item sec" onClick={() => { setView({ kind: 'shortcuts' }); setOpen(o => ({ ...o, shortcuts: !o.shortcuts })) }}><Star size={16} /><span>Shortcuts</span>{open.shortcuts ? <ChevronDown size={14} className="chev" /> : <ChevronRight size={14} className="chev" />}</div>
-        {open.shortcuts && live.filter(n => n.pinned).map(n => <div key={n.id} className={'item sub' + (n.id === sel && view.kind === 'shortcuts' ? ' active' : '')} onClick={() => { setView({ kind: 'shortcuts' }); setSel(n.id) }}><FileText size={15} /><span>{n.title || 'Untitled'}</span></div>)}
-        <Sec k="notebooks" icon={<BookOpen size={16} />} label="Notebooks" onAdd={newBook} />
+        <div className={is({ kind: 'all' })} onClick={() => setView({ kind: 'all' })}><Home size={17} /><span>Home</span><span className="count">{live.length}</span></div>
+        <div className="item sec" onClick={() => { setView({ kind: 'shortcuts' }); setOpen(o => ({ ...o, shortcuts: !o.shortcuts })) }}><Star size={17} /><span>Shortcuts</span>{open.shortcuts ? <ChevronDown size={14} className="chev" /> : <ChevronRight size={14} className="chev" />}</div>
+        {open.shortcuts && live.filter(n => n.pinned).map(n => <div key={n.id} className={'item sub' + (n.id === sel && view.kind === 'shortcuts' ? ' active' : '')} onClick={() => { setView({ kind: 'shortcuts' }); setSel(n.id) }}><Book size={16} /><span>{n.title || 'Untitled'}</span></div>)}
+        <Sec k="notebooks" icon={<NotebookIcon size={17} />} label="Notebooks" onAdd={newBook} />
         {open.notebooks && Object.entries(stacks).sort().map(([s, bs]) => <div key={s}>
-          {s && <div className="item sub stack"><Layers size={15} /><span>{s}</span></div>}
+          {s && <div className="item sub stack"><Layers size={17} /><span>{s}</span></div>}
           {bs.map(b => <div key={b.id} className={is({ kind: 'notebook', id: b.id }) + ' sub' + (s ? ' deep' : '')} onClick={() => setView({ kind: 'notebook', id: b.id })}>
-            <BookOpen size={15} /><span>{b.name}</span><span className="count">{live.filter(n => n.notebookId === b.id).length}</span>
+            <NotebookIcon size={17} /><span>{b.name}</span><span className="count">{live.filter(n => n.notebookId === b.id).length}</span>
             <button className="mini x" title="Delete notebook" onClick={e => { e.stopPropagation(); delBook(b) }}><X size={13} /></button></div>)}
         </div>)}
-        <Sec k="tags" icon={<Tag size={16} />} label="Tags" />
-        {open.tags && tags.map(t => <div key={t} className={is({ kind: 'tag', tag: t }) + ' sub'} onClick={() => setView({ kind: 'tag', tag: t })}><Tag size={14} /><span>{t}</span></div>)}
-        <div className={is({ kind: 'trash' })} onClick={() => setView({ kind: 'trash' })}><Trash2 size={16} /><span>Trash</span><span className="count">{notes.length - live.length}</span></div>
+        <Sec k="tags" icon={<Tag size={17} />} label="Tags" />
+        {open.tags && tags.map(t => <div key={t} className={is({ kind: 'tag', tag: t }) + ' sub'} onClick={() => setView({ kind: 'tag', tag: t })}><Tag size={16} /><span>{t}</span></div>)}
+        <div className={is({ kind: 'trash' })} onClick={() => setView({ kind: 'trash' })}><Trash2 size={17} /><span>Trash</span><span className="count">{notes.length - live.length}</span></div>
       </nav>
       <Account engine={engine} onSettings={() => setShowSettings(true)} />
     </aside>
@@ -135,7 +140,7 @@ export default function App() {
       <header>
         <div className="lt"><h2>{title}</h2><span className="n">{list.length}</span></div>
         <div className="tools">
-          <button title="New note" onClick={newNote}><FilePlus2 size={16} /></button>
+          <button title="New note" onClick={() => newNote()}><FilePlus2 size={16} /></button>
           <span className="rel"><button title={'Sort: ' + sortLabel[sort]} onClick={e => { e.stopPropagation(); setMenu(menu === 'sort' ? '' : 'sort') }}><ArrowDownUp size={16} /></button>
             {menu === 'sort' && <div className="menu">{(Object.keys(sortLabel) as (keyof typeof sortLabel)[]).map(k => <button key={k} className={k === sort ? 'on' : ''} onClick={() => setSort(k)}>{sortLabel[k]}</button>)}</div>}</span>
           <button title={pinnedOnly ? 'Showing shortcuts only' : 'Filter: shortcuts only'} className={pinnedOnly ? 'on' : ''} onClick={() => setPinnedOnly(!pinnedOnly)}><Filter size={16} /></button>

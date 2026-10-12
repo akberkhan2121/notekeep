@@ -157,3 +157,34 @@ nav{margin:0 -4px;padding:0 4px}
 .prose ul[data-type=taskList] li>label input:checked::after{content:"";width:5px;height:9px;border:solid #fff;border-width:0 2px 2px 0;transform:translateY(-1px) rotate(45deg)}
 .prose ul[data-type=taskList] li>label input:focus-visible{outline:2px solid #4a5cf066;outline-offset:1px}
 .prose ul[data-type=taskList] li[data-checked=true]>div{color:inherit;text-decoration:none}
+
+/* ── sidebar v3: measured against Evernote @2x (CSS px) ── */
+.app{grid-template-columns:252px 300px 1fr}
+.sidebar{background:#f6f5f4;padding:16px 12px 8px;border-right:1px solid #e8e7e5}
+.search{height:39px;padding:0 12px;gap:10px;background:#e7e6e5;border-radius:8px;color:#555}
+.search input{font-size:16px}.search input::placeholder{color:#6b6b6b}
+.actions{gap:5px;margin:8px 0 16px}
+.new{height:39px;padding:0 16px 0 13px;gap:6px;font-size:16px;font-weight:600;background:#4ba541;border-radius:20px}.new:hover{background:#43963a}
+.round{width:39px;height:39px;border:1px solid #dad9d8;background:transparent;color:#975ce3;position:relative}.round:hover{background:#ecebe9}
+.round .plus{position:absolute;right:8px;bottom:9px;background:#f6f5f4;border-radius:50%}
+.round svg{stroke-width:1.7}
+nav{margin:0 -5px;padding:0 5px}
+.item{height:31px;line-height:31px;padding:0 12px;gap:7px;font-size:14.5px;color:#212121;border:1.5px solid transparent;border-radius:12px}
+.item svg{width:17px;height:17px;color:#3d3d3d;stroke-width:1.5}
+.item:hover{background:#ecebe9}
+.item.active{background:transparent;border-color:#7f8df7;font-weight:400}
+.item.sub{padding-left:31px}.item.deep{padding-left:55px}
+.item.sub svg{width:17px;height:17px}
+/* counts / chevrons / + only on hover (or when active) */
+.item .count,.item .chev,.item .mini{opacity:0;transition:opacity .1s}
+.item:hover .count,.item:hover .chev,.item:hover .mini,.item.active .count{opacity:1}
+.item .count{color:#8a8a8a}
+.sidebar .menu{left:0;right:auto}.sidebar .menu button{display:flex;align-items:center;gap:8px}
+/* v3 iteration 2 */
+.sidebar{padding-top:24px}
+.actions{margin:8px 0 19px}
+.item{font-size:14px}
+.item.sub svg{width:16px;height:16px;margin:0 .5px}
+.item.active{border-color:transparent;outline:1.5px solid #7f8df7;outline-offset:3px;border-radius:12px}
+.round.gray{color:#3d3d3d}
+.search svg{width:18px;height:18px;color:#3d3d3d}
