@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { all, put, del, uid, onDbStatus, getDbStatus, importLegacy, type Note, type Notebook, type DbStatus } from './db'
 import Editor from './Editor'
 import Account from './Account'
-import { Search, Plus, FilePlus2, NotebookPen, MoreHorizontal, Home, Star, ChevronRight, ChevronDown, Tag, Trash2, ArrowDownUp, Filter, ChevronsLeft, ChevronsRight, Maximize2, Minimize2, Link2, Bell, Layers, X, Settings as Gear, Download, CircleCheckBig, Book, Notebook as NotebookIcon } from 'lucide-react'
+import { Search, Plus, FilePlus2, NotebookPen, MoreHorizontal, Home, Star, ChevronRight, ChevronDown, Tag, Trash2, ArrowDownUp, Filter, ChevronsLeft, ChevronsRight, ChevronLeft, Menu as MenuIcon, Maximize2, Minimize2, Link2, Bell, Layers, X, Settings as Gear, Download, CircleCheckBig, Book, Notebook as NotebookIcon } from 'lucide-react'
 import { SyncEngine, supabase, withTimeout } from './sync'
 import Settings from './Settings'
 import { loadFonts } from './settings'
@@ -27,6 +27,9 @@ export default function App() {
   const [open, setOpen] = useState({ shortcuts: true, notebooks: true, tags: true })
   const [pinnedOnly, setPinnedOnly] = useState(false)
   const [showSettings, setShowSettings] = useState<false | 'prefs' | 'import'>(false)
+  // mobile (<768px): single-pane navigation — 'list' shows the note list, 'note' shows the editor full screen
+  const [mview, setMview] = useState<'list' | 'note'>('list')
+  const [drawer, setDrawer] = useState(false)
   useEffect(() => { loadFonts() }, [])
   const later = (n: Note) => { clearTimeout(saveT.current[n.id]); setSaving(1); saveT.current[n.id] = window.setTimeout(() => put('notes', n).then(() => setSaving(0)), 300) }
 
@@ -82,7 +85,7 @@ export default function App() {
     let nbId = view.kind === 'notebook' ? view.id : books[0]?.id
     if (!nbId) { const nb = { id: uid(), name: 'First Notebook', createdAt: Date.now(), updatedAt: Date.now() }; await put('notebooks', nb); setBooks([nb]); nbId = nb.id }
     const n: Note = { id: uid(), title: '', html, text: '', notebookId: nbId, tags: view.kind === 'tag' ? [view.tag] : [], pinned: view.kind === 'shortcuts', deletedAt: null, createdAt: Date.now(), updatedAt: Date.now() }
-    await put('notes', n); setNotes(ns => [n, ...ns]); if (view.kind === 'trash') setView({ kind: 'all' }); setQ(''); setSel(n.id)
+    await put('notes', n); setNotes(ns => [n, ...ns]); if (view.kind === 'trash') setView({ kind: 'all' }); setQ(''); setSel(n.id); setMview('note'); setDrawer(false)
   }
   const newBook = async () => {
     const name = prompt('Notebook name'); if (!name) return
@@ -106,8 +109,9 @@ export default function App() {
   const dbBanner = dbState === 'slow' ? <div className="dbbanner" role="status">Opening local storage is taking longer than usual (another Notekeep tab may be holding it). Waiting… <button onClick={() => location.reload()}>Reload</button></div>
     : dbState === 'memory' ? <div className="dbbanner" role="alert">Local storage is unavailable in this tab, so Notekeep is running from memory{supabase ? ' and loading your notes from the cloud. Edits sync while you are signed in' : '. Edits will be lost when you close this tab'}. Closing other Notekeep tabs and reloading usually fixes this. <button onClick={() => location.reload()}>Reload</button></div> : null
 
-  return <>{dbBanner}<div className={'app' + (hideSide ? ' noside' : '') + (focus ? ' focus' : '')} onClick={() => menu && setMenu('')}>
-    <aside className="sidebar">
+  return <>{dbBanner}<div className={'app' + (hideSide ? ' noside' : '') + (focus ? ' focus' : '') + (mview === 'note' && cur ? ' m-note' : ' m-list') + (drawer ? ' m-drawer' : '')} onClick={() => menu && setMenu('')}>
+    <div className="m-scrim" onClick={() => setDrawer(false)} />
+    <aside className="sidebar" onClick={e => { if ((e.target as HTMLElement).closest('.item:not(.sec):not(.stack)')) setDrawer(false) }}>
       <label className="search"><Search size={19} /><input placeholder="Search" value={q} onChange={e => setQ(e.target.value)} aria-label="Search notes" /></label>
       <div className="actions">
         <button className="new" onClick={() => newNote()}><FilePlus2 size={20} strokeWidth={1.8} /> Note</button>
@@ -139,7 +143,7 @@ export default function App() {
     </aside>
     <section className="list">
       <header>
-        <div className="lt"><h2>{title}</h2><span className="n">{list.length}</span></div>
+        <div className="lt"><button className="ic m-only" title="Open menu" aria-label="Open menu" onClick={e => { e.stopPropagation(); setDrawer(true) }}><MenuIcon size={20} /></button><h2>{title}</h2><span className="n">{list.length}</span></div>
         <div className="tools">
           <button title="New note" onClick={() => newNote()}><FilePlus2 size={16} /></button>
           <span className="rel"><button title={'Sort: ' + sortLabel[sort]} onClick={e => { e.stopPropagation(); setMenu(menu === 'sort' ? '' : 'sort') }}><ArrowDownUp size={16} /></button>
@@ -154,7 +158,7 @@ export default function App() {
         </div>
       </header>
       <div className="cards">
-        {list.map(n => <article key={n.id} className={'card' + (n.id === sel ? ' sel' : '')} onClick={() => setSel(n.id)}>
+        {list.map(n => <article key={n.id} className={'card' + (n.id === sel ? ' sel' : '')} onClick={() => { setSel(n.id); setMview('note') }}>
           <h3>{n.title || 'Untitled'}</h3><p>{n.text.slice(0, 160) || 'No additional text'}</p><time>{fmtShort(n.updatedAt)}</time></article>)}
         {!list.length && <div className="empty">{q ? 'No matching notes' : 'No notes here yet'}</div>}
       </div>
@@ -162,6 +166,7 @@ export default function App() {
     <main className="pane">
       {cur ? <>
         <div className="notebar">
+          <button className="ic m-only m-back" title="Back to notes" aria-label="Back to notes" onClick={() => setMview('list')}><ChevronLeft size={22} /></button>
           {hideSide && <button className="ic" title="Show sidebar" onClick={() => setHideSide(false)}><ChevronsRight size={16} /></button>}
           <button className="ic" title={focus ? 'Exit full screen' : 'Expand note'} onClick={() => setFocus(!focus)}>{focus ? <Minimize2 size={15} /> : <Maximize2 size={15} />}</button>
           <div className="crumbs">

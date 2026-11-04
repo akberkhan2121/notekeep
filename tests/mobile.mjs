@@ -1,0 +1,31 @@
+import { webkit, chromium, devices } from '@playwright/test'
+const URL = process.env.URL || 'http://localhost:5173'
+const ok = (c, m) => { if (!c) throw new Error('FAIL: ' + m); console.log('ok -', m) }
+for (const [name, bt, dev] of [['iPhone 14 (WebKit)', webkit, devices['iPhone 14']], ['Pixel 7 (Chromium)', chromium, devices['Pixel 7']]]) {
+  console.log('#', name)
+  const b = await bt.launch(); const ctx = await b.newContext({ ...dev, hasTouch: true }); const p = await ctx.newPage()
+  await p.goto(URL); await p.waitForSelector('.card')
+  ok(await p.locator('.pane').isHidden() && await p.locator('.list').isVisible(), 'list pane shown alone')
+  if (name.startsWith('iPhone')) await p.screenshot({ path: 'screenshots/14-mobile-list.png' })
+  await p.tap('button[title="Open menu"]'); await p.waitForTimeout(350)
+  ok(await p.evaluate(() => document.querySelector('.sidebar').getBoundingClientRect().left >= 0), 'drawer opens')
+  await p.tap('.sidebar .new'); await p.waitForSelector('.pane .tiptap')
+  ok(await p.locator('.list').isHidden(), 'editor full screen')
+  await p.tap('.title'); await p.keyboard.type('Phone note')
+  await p.tap('.tiptap'); await p.keyboard.type('Typed on mobile')
+  ok(await p.evaluate(() => document.activeElement?.closest('.tiptap') != null), 'body focused after tap')
+  ok((await p.locator('.tiptap').innerText()).includes('Typed on mobile'), 'body text typed')
+  const fs = await p.evaluate(() => [...document.querySelectorAll('input')].filter(i => i.offsetParent).map(i => parseFloat(getComputedStyle(i).fontSize)))
+  ok(fs.every(f => f >= 16), 'inputs >=16px ' + fs)
+  const tb = await p.evaluate(() => { const t = document.querySelector('.toolbar'); return { sw: t.scrollWidth, cw: t.clientWidth, ox: getComputedStyle(t).overflowX, doc: document.documentElement.scrollWidth, vw: innerWidth } })
+  ok(tb.ox === 'auto' && tb.doc <= tb.vw, 'toolbar scrolls horizontally, no page overflow ' + JSON.stringify(tb))
+  await p.waitForTimeout(700)
+  if (name.startsWith('iPhone')) await p.screenshot({ path: 'screenshots/15-mobile-editor.png' })
+  await p.tap('button[title="Back to notes"]'); ok(await p.locator('.card', { hasText: 'Typed on mobile' }).count() === 1, 'back to list shows note')
+  await p.reload(); await p.waitForSelector('.card'); ok(await p.locator('.card', { hasText: 'Typed on mobile' }).count() === 1, 'persisted after reload')
+  await p.tap('.card:has-text("Welcome")'); await p.tap('.tiptap p'); await p.keyboard.press('End'); await p.keyboard.type(' EXISTING-EDIT')
+  ok((await p.locator('.tiptap').innerText()).includes('EXISTING-EDIT'), 'existing note editable')
+  await p.waitForTimeout(700); await p.reload(); await p.waitForSelector('.card'); ok(await p.locator('.card', { hasText: 'EXISTING-EDIT' }).count() === 1, 'existing edit persisted')
+  await b.close()
+}
+console.log('MOBILE SMOKE PASSED')
