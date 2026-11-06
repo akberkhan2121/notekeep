@@ -112,6 +112,10 @@ export default function App() {
   return <>{dbBanner}<div className={'app' + (hideSide ? ' noside' : '') + (focus ? ' focus' : '') + (mview === 'note' && cur ? ' m-note' : ' m-list') + (drawer ? ' m-drawer' : '')} onClick={() => menu && setMenu('')}>
     <div className="m-scrim" onClick={() => setDrawer(false)} />
     <aside className="sidebar" onClick={e => { if ((e.target as HTMLElement).closest('.item:not(.sec):not(.stack)')) setDrawer(false) }}>
+      <div className="brand">
+        <img src="/logo-192.png" alt="Notekeep" className="brand-logo" />
+        <span className="brand-name">Notekeep</span>
+      </div>
       <label className="search"><Search size={19} /><input placeholder="Search" value={q} onChange={e => setQ(e.target.value)} aria-label="Search notes" /></label>
       <div className="actions">
         <button className="new" onClick={() => newNote()}><FilePlus2 size={20} strokeWidth={1.8} /> Note</button>

@@ -7,6 +7,9 @@ button{font:inherit;color:inherit;cursor:pointer}
 .app.focus{grid-template-columns:0 0 1fr}.app.focus .sidebar,.app.focus .list{display:none}
 /* sidebar */
 .sidebar{background:var(--side);display:flex;flex-direction:column;padding:10px 8px 8px;min-width:0;min-height:0;height:100%;overflow:hidden;border-right:1px solid var(--line)}
+.brand{display:flex;align-items:center;gap:10px;padding:4px 6px 12px;margin-bottom:2px}
+.brand-logo{width:32px;height:32px;object-fit:contain;flex:none}
+.brand-name{font-size:18px;font-weight:700;letter-spacing:-0.01em;color:var(--text)}
 .search{display:flex;align-items:center;gap:8px;background:#e6e6e6;border-radius:8px;padding:7px 10px;color:var(--muted)}
 .search input{border:0;background:none;outline:0;flex:1;font:inherit;color:var(--text);min-width:0}
 .actions{display:flex;gap:6px;margin:10px 0 12px;align-items:center}
