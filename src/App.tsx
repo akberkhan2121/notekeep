@@ -113,7 +113,7 @@ export default function App() {
     <div className="m-scrim" onClick={() => setDrawer(false)} />
     <aside className="sidebar" onClick={e => { if ((e.target as HTMLElement).closest('.item:not(.sec):not(.stack)')) setDrawer(false) }}>
       <div className="brand">
-        <img src="/logo-192.png" alt="Notekeep" className="brand-logo" />
+        <img src="/logo-192-v2.png" alt="Notekeep" className="brand-logo" />
         <span className="brand-name">Notekeep</span>
       </div>
       <label className="search"><Search size={19} /><input placeholder="Search" value={q} onChange={e => setQ(e.target.value)} aria-label="Search notes" /></label>
